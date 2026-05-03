@@ -1,6 +1,5 @@
 using UnityEditor;
 using UnityEngine;
-using System.Linq;
 
 namespace DevKitLoader
 {
@@ -15,9 +14,13 @@ namespace DevKitLoader
             {
                 string json = EditorPrefs.GetString(PrefKey);
                 ToolList list = JsonUtility.FromJson<ToolList>(json);
+
                 if (list != null && list.Entries != null)
+                {
                     return list;
+                }
             }
+
             return new ToolList();
         }
 
@@ -40,6 +43,7 @@ namespace DevKitLoader
         public static void RemoveEntry(int index)
         {
             var list = LoadList();
+
             if (index >= 0 && index < list.Entries.Count)
             {
                 list.Entries.RemoveAt(index);
@@ -51,18 +55,20 @@ namespace DevKitLoader
         public static void UpdateEntry(int index, ToolEntry newEntry)
         {
             var list = LoadList();
+
             if (index >= 0 && index < list.Entries.Count)
             {
                 // Copy data to avoid shared reference mutations
                 list.Entries[index] = new ToolEntry
-                {
-                    Name = newEntry.Name,
-                    Description = newEntry.Description,
-                    Type = newEntry.Type,
-                    Url = newEntry.Url,
-                    License = newEntry.License,
-                    Tags = newEntry.Tags
-                };
+                                      {
+                                          Name = newEntry.Name,
+                                          Description = newEntry.Description,
+                                          Type = newEntry.Type,
+                                          Url = newEntry.Url,
+                                          License = newEntry.License,
+                                          Tags = newEntry.Tags
+                                      };
+
                 SaveList(list);
             }
         }

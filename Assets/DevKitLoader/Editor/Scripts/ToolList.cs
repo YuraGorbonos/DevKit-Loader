@@ -6,6 +6,6 @@ namespace DevKitLoader
     [Serializable]
     public class ToolList
     {
-        public List<ToolEntry> Entries = new List<ToolEntry>();
+        public List<ToolEntry> Entries = new();
     }
 }
