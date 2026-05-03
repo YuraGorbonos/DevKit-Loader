@@ -1,0 +1,11 @@
+{
+  "name": "DevKitLoader.Tests.Editor",
+  "rootNamespace": "DevKitLoader.Tests",
+  "references": ["DevKitLoader.Editor"],
+  "includePlatforms": ["Editor"],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": true,
+  "precompiledReferences": ["nunit.framework.dll"],
+  "autoReferenced": true
+}
