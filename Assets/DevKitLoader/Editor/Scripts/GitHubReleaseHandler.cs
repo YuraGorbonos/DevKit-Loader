@@ -98,17 +98,34 @@ namespace DevKitLoader
 
             using (var request = UnityWebRequest.Get(apiUrl))
             {
+                // Устанавливаем заголовки с защитой от недопустимых символов
                 request.SetRequestHeader("User-Agent", UserAgent);
                 request.SetRequestHeader("Accept", "application/vnd.github.v3+json");
 
                 if (hasCached && !string.IsNullOrEmpty(cachedEntry.ETag))
                 {
-                    request.SetRequestHeader("If-None-Match", cachedEntry.ETag);
+                    string sanitizedEtag = SanitizeHeaderValue(cachedEntry.ETag);
+
+                    if (!string.IsNullOrEmpty(sanitizedEtag))
+                    {
+                        try
+                        {
+                            request.SetRequestHeader("If-None-Match", sanitizedEtag);
+                        }
+                        catch (Exception ex)
+                        {
+                            Debug.LogWarning($"[DevKitLoader] Invalid ETag header, clearing cache: {ex.Message}");
+
+                            // Удаляем проблемную запись из кэша
+                            cache.Remove(cacheKey);
+                            ApiCache.Save(cache);
+                            hasCached = false;
+                        }
+                    }
                 }
 
                 var asyncOp = request.SendWebRequest();
 
-                // Ручное ожидание с проверкой отмены
                 while (!asyncOp.isDone)
                 {
                     if (cancellationToken.IsCancellationRequested)
@@ -123,6 +140,7 @@ namespace DevKitLoader
                 if (request.result == UnityWebRequest.Result.Success)
                 {
                     string etag = request.GetResponseHeader("ETag")?.Trim('"');
+                    etag = SanitizeHeaderValue(etag); // очищаем
                     var (downloadUrl, size) = ParseReleaseJson(request.downloadHandler.text);
 
                     var newEntry = new ApiCacheEntry
@@ -145,6 +163,18 @@ namespace DevKitLoader
 
                 throw new Exception($"GitHub API ошибка: {request.error} (код {request.responseCode})");
             }
+        }
+
+        // Добавьте этот вспомогательный метод в класс:
+        private string SanitizeHeaderValue(string value)
+        {
+            if (string.IsNullOrEmpty(value))
+            {
+                return null;
+            }
+
+            // Оставляем только разрешённые символы: буквы, цифры, пробелы, дефис, подчёркивание, двоеточие, точка, звёздочка
+            return System.Text.RegularExpressions.Regex.Replace(value, @"[^\w\-\s:\.\*]", "");
         }
 
         private (string downloadUrl, long size) ParseReleaseJson(string json)
