@@ -2,10 +2,9 @@
 using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
- 
+
 namespace DevKitLoader
 {
-    // Перемещённый ApiCache.cs (DRY-центр для кэша API)
     [Serializable]
     public class ApiCacheEntry
     {
@@ -20,6 +19,7 @@ namespace DevKitLoader
             {
                 return DateTime.UtcNow > expiry;
             }
+
             return true;
         }
 
@@ -44,7 +44,7 @@ namespace DevKitLoader
 
     public static class ApiCache
     {
-        private static readonly string _cachePath = Path.Combine(Application.dataPath, "..", "ProjectSettings", "DevKitLoaderCache.json");
+        private static readonly string _cachePath = Path.Combine(Application.dataPath, "../ProjectSettings/DevKitLoaderCache.json");
 
         public static Dictionary<string, ApiCacheEntry> Load()
         {
@@ -54,15 +54,19 @@ namespace DevKitLoader
                 {
                     string json = File.ReadAllText(_cachePath);
                     var data = JsonUtility.FromJson<ApiCacheData>(json);
+
                     if (data?.entries != null)
                     {
                         var dict = new Dictionary<string, ApiCacheEntry>();
+
                         foreach (var pair in data.entries)
                         {
                             dict[pair.key] = pair.value;
                         }
+
                         return dict;
                     }
+
                     return new Dictionary<string, ApiCacheEntry>();
                 }
                 catch (Exception e)
@@ -71,6 +75,7 @@ namespace DevKitLoader
                     return new Dictionary<string, ApiCacheEntry>();
                 }
             }
+
             return new Dictionary<string, ApiCacheEntry>();
         }
 
@@ -79,15 +84,19 @@ namespace DevKitLoader
             try
             {
                 var data = new ApiCacheData();
+
                 if (entries != null)
                 {
                     var list = new List<ApiCacheEntryPair>();
+
                     foreach (var kv in entries)
                     {
                         list.Add(new ApiCacheEntryPair { key = kv.Key, value = kv.Value });
                     }
+
                     data.entries = list.ToArray();
                 }
+
                 string json = JsonUtility.ToJson(data, true);
                 File.WriteAllText(_cachePath, json);
             }

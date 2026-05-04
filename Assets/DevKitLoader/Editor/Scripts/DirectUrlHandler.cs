@@ -46,9 +46,30 @@ namespace DevKitLoader
 
         private async Task DownloadFileAsync(string url, string destPath, Action<string, float> onProgress, CancellationToken cancellationToken)
         {
-            await DevKitLoaderCommon.DownloadFileAsync(url, destPath, onProgress, cancellationToken);
+            using (var request = new UnityWebRequest(url, UnityWebRequest.kHttpVerbGET))
+            {
+                request.downloadHandler = new DownloadHandlerFile(destPath);
+                var asyncOp = request.SendWebRequest();
+
+                while (!asyncOp.isDone)
+                {
+                    if (cancellationToken.IsCancellationRequested)
+                    {
+                        request.Abort();
+                        throw new OperationCanceledException();
+                    }
+
+                    onProgress?.Invoke("Скачивание...", 0.3f + asyncOp.progress * 0.5f);
+                    await Task.Delay(50, cancellationToken);
+                }
+
+                if (request.result != UnityWebRequest.Result.Success)
+                {
+                    throw new Exception($"Ошибка загрузки: {request.error}");
+                }
+            }
         }
 
-        private string SanitizeFolderName(string name) => DevKitLoaderCommon.GetTargetFolderForName(name);
+        // Санитайзеры вынесены в DevKitLoaderCommon
     }
 }
