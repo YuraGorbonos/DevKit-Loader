@@ -83,14 +83,3 @@ For bug reports or feature requests, please open an issue on the GitHub reposito
 ## License
 
 This plugin is provided as-is under the MIT License (or your chosen license). See `LICENSE.md` for details.
-
-## Final steps before packaging
-
-Create a LICENSE-3rd.txt in the root of Assets/DevKitLoader/ (or inside Editor/Libs/). Copy the SharpCompress license text there (you can fetch from the SharpCompress GitHub repository).
-
-Ensure that the .unitypackage export includes only necessary files (Assets/DevKitLoader and Editor/Libs/SharpCompress.dll). Exclude transient files like `.firstrun`.
-
-- All scripts for Editor should be located under Editor to avoid being included in runtime builds.
-- Optionally, add an icon for the windows (text headers are fine for now).
-
-The final DevKitLoader.unitypackage can be published on GitHub Releases, Asset Store, or distributed by another method.
