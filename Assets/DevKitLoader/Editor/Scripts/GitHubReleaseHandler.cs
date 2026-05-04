@@ -20,7 +20,7 @@ namespace DevKitLoader
         private class GitHubAsset
         {
             public string name;
-            public string browser_download_url;
+            public string browserDownloadUrl;
             public long size;
         }
 
@@ -102,9 +102,9 @@ namespace DevKitLoader
                 request.SetRequestHeader("User-Agent", UserAgent);
                 request.SetRequestHeader("Accept", "application/vnd.github.v3+json");
 
-                if (hasCached && !string.IsNullOrEmpty(cachedEntry.ETag))
+                if (hasCached && !string.IsNullOrEmpty(cachedEntry.tag))
                 {
-                    string sanitizedEtag = SanitizeHeaderValue(cachedEntry.ETag);
+                    string sanitizedEtag = SanitizeHeaderValue(cachedEntry.tag);
 
                     if (!string.IsNullOrEmpty(sanitizedEtag))
                     {
@@ -145,9 +145,9 @@ namespace DevKitLoader
 
                     var newEntry = new ApiCacheEntry
                                    {
-                                       ETag = etag,
-                                       DownloadUrl = downloadUrl,
-                                       Size = size
+                                       tag = etag,
+                                       downloadUrl = downloadUrl,
+                                       size = size
                                    };
 
                     newEntry.SetExpiry(TimeSpan.FromHours(24));
@@ -158,14 +158,13 @@ namespace DevKitLoader
 
                 if (request.responseCode == 304 && hasCached)
                 {
-                    return (cachedEntry.DownloadUrl, cachedEntry.Size, cachedEntry.ETag);
+                    return (cachedEntry.downloadUrl, cachedEntry.size, cachedEntry.tag);
                 }
 
                 throw new Exception($"GitHub API ошибка: {request.error} (код {request.responseCode})");
             }
         }
 
-        // Добавьте этот вспомогательный метод в класс:
         private string SanitizeHeaderValue(string value)
         {
             if (string.IsNullOrEmpty(value))
@@ -192,7 +191,7 @@ namespace DevKitLoader
 
                 if (lowerName.EndsWith(".unitypackage") || lowerName.EndsWith(".zip"))
                 {
-                    return (asset.browser_download_url, asset.size);
+                    return (asset.browserDownloadUrl, asset.size);
                 }
             }
 

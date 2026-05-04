@@ -114,9 +114,9 @@ namespace DevKitLoader
                 request.SetRequestHeader("User-Agent", UserAgent);
                 request.SetRequestHeader("Accept", "application/json");
 
-                if (hasCached && !string.IsNullOrEmpty(cachedEntry.ETag))
+                if (hasCached && !string.IsNullOrEmpty(cachedEntry.tag))
                 {
-                    string sanitized = SanitizeHeaderValue(cachedEntry.ETag);
+                    string sanitized = SanitizeHeaderValue(cachedEntry.tag);
 
                     if (!string.IsNullOrEmpty(sanitized))
                     {
@@ -145,9 +145,9 @@ namespace DevKitLoader
 
                     var newEntry = new ApiCacheEntry
                                    {
-                                       ETag = etag,
-                                       DownloadUrl = downloadUrl,
-                                       Size = size
+                                       tag = etag,
+                                       downloadUrl = downloadUrl,
+                                       size = size
                                    };
 
                     newEntry.SetExpiry(TimeSpan.FromHours(24));
@@ -158,7 +158,7 @@ namespace DevKitLoader
 
                 if (request.responseCode == 304 && hasCached)
                 {
-                    return (cachedEntry.DownloadUrl, cachedEntry.Size, cachedEntry.ETag);
+                    return (cachedEntry.downloadUrl, cachedEntry.size, cachedEntry.tag);
                 }
 
                 throw new Exception($"GitLab API ошибка: {request.error} (код {request.responseCode})");

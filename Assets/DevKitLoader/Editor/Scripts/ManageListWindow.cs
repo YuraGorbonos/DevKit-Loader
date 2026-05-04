@@ -8,18 +8,18 @@ namespace DevKitLoader
 {
     public class ManageListWindow : EditorWindow
     {
-        private Vector2 scrollPosition;
-        private int editingIndex = -1;
+        private Vector2 _scrollPosition;
+        private int _editingIndex = -1;
 
         // Поля формы
-        private string nameField = "";
-        private string descriptionField = "";
-        private SourceType typeField = SourceType.GitHubRelease;
-        private string urlField = "";
-        private string licenseField = "";
-        private string tagsField = "";
+        private string _nameField = "";
+        private string _descriptionField = "";
+        private SourceType _typeField = SourceType.GitHubRelease;
+        private string _urlField = "";
+        private string _licenseField = "";
+        private string _tagsField = "";
 
-        private ToolList cachedList;
+        private ToolList _cachedList;
 
         private void OnEnable()
         {
@@ -35,13 +35,13 @@ namespace DevKitLoader
 
         private void LoadList()
         {
-            cachedList = ToolListManager.LoadList();
+            _cachedList = ToolListManager.LoadList();
         }
 
         private void SaveAndReload()
         {
             // Сохранение происходит внутри методов ToolListManager, нам нужно перезагрузить кэш
-            cachedList = ToolListManager.LoadList();
+            _cachedList = ToolListManager.LoadList();
             Repaint();
         }
 
@@ -54,39 +54,39 @@ namespace DevKitLoader
 
         private void DrawForm()
         {
-            GUILayout.Label(editingIndex == -1 ? "Add New Tool" : "Edit Tool", EditorStyles.boldLabel);
+            GUILayout.Label(_editingIndex == -1 ? "Add New Tool" : "Edit Tool", EditorStyles.boldLabel);
 
             EditorGUILayout.BeginVertical("box");
-            nameField = EditorGUILayout.TextField("Name*", nameField);
-            typeField = (SourceType)EditorGUILayout.EnumPopup("Source Type", typeField);
-            urlField = EditorGUILayout.TextField("URL*", urlField);
-            descriptionField = EditorGUILayout.TextField("Description", descriptionField);
-            licenseField = EditorGUILayout.TextField("License (optional)", licenseField);
-            tagsField = EditorGUILayout.TextField("Tags (optional)", tagsField);
+            _nameField = EditorGUILayout.TextField("Name*", _nameField);
+            _typeField = (SourceType)EditorGUILayout.EnumPopup("Source Type", _typeField);
+            _urlField = EditorGUILayout.TextField("URL*", _urlField);
+            _descriptionField = EditorGUILayout.TextField("Description", _descriptionField);
+            _licenseField = EditorGUILayout.TextField("License (optional)", _licenseField);
+            _tagsField = EditorGUILayout.TextField("Tags (optional)", _tagsField);
 
             EditorGUILayout.BeginHorizontal();
 
-            if (GUILayout.Button(editingIndex == -1 ? "Add" : "Update"))
+            if (GUILayout.Button(_editingIndex == -1 ? "Add" : "Update"))
             {
                 if (ValidateForm())
                 {
                     var entry = new ToolEntry
                                 {
-                                    Name = nameField.Trim(),
-                                    Description = descriptionField,
-                                    Type = typeField,
-                                    Url = urlField.Trim(),
-                                    License = licenseField,
-                                    Tags = tagsField
+                                    Name = _nameField.Trim(),
+                                    Description = _descriptionField,
+                                    Type = _typeField,
+                                    Url = _urlField.Trim(),
+                                    License = _licenseField,
+                                    Tags = _tagsField
                                 };
 
-                    if (editingIndex == -1)
+                    if (_editingIndex == -1)
                     {
                         ToolListManager.AddEntry(entry);
                     }
                     else
                     {
-                        ToolListManager.UpdateEntry(editingIndex, entry);
+                        ToolListManager.UpdateEntry(_editingIndex, entry);
                     }
 
                     ClearForm();
@@ -94,7 +94,7 @@ namespace DevKitLoader
                 }
             }
 
-            if (editingIndex != -1 && GUILayout.Button("Cancel"))
+            if (_editingIndex != -1 && GUILayout.Button("Cancel"))
             {
                 ClearForm();
             }
@@ -106,13 +106,13 @@ namespace DevKitLoader
 
         private bool ValidateForm()
         {
-            if (string.IsNullOrWhiteSpace(nameField))
+            if (string.IsNullOrWhiteSpace(_nameField))
             {
                 EditorUtility.DisplayDialog("Validation Error", "Tool Name is required.", "OK");
                 return false;
             }
 
-            if (string.IsNullOrWhiteSpace(urlField))
+            if (string.IsNullOrWhiteSpace(_urlField))
             {
                 EditorUtility.DisplayDialog("Validation Error", "URL is required.", "OK");
                 return false;
@@ -123,13 +123,13 @@ namespace DevKitLoader
 
         private void ClearForm()
         {
-            editingIndex = -1;
-            nameField = "";
-            descriptionField = "";
-            typeField = SourceType.GitHubRelease;
-            urlField = "";
-            licenseField = "";
-            tagsField = "";
+            _editingIndex = -1;
+            _nameField = "";
+            _descriptionField = "";
+            _typeField = SourceType.GitHubRelease;
+            _urlField = "";
+            _licenseField = "";
+            _tagsField = "";
             GUI.FocusControl(null);
         }
 
@@ -150,17 +150,17 @@ namespace DevKitLoader
         {
             GUILayout.Label("Installed Tools List", EditorStyles.boldLabel);
 
-            if (cachedList == null || cachedList.Entries.Count == 0)
+            if (_cachedList == null || _cachedList.Entries.Count == 0)
             {
                 GUILayout.Label("No tools added yet. Use the form above to add your first tool.", EditorStyles.centeredGreyMiniLabel);
                 return;
             }
 
-            scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition, GUILayout.ExpandHeight(true));
+            _scrollPosition = EditorGUILayout.BeginScrollView(_scrollPosition, GUILayout.ExpandHeight(true));
 
-            for (int i = 0; i < cachedList.Entries.Count; i++)
+            for (int i = 0; i < _cachedList.Entries.Count; i++)
             {
-                var entry = cachedList.Entries[i];
+                var entry = _cachedList.Entries[i];
                 EditorGUILayout.BeginHorizontal("box");
 
                 // Отображение информации
@@ -195,13 +195,13 @@ namespace DevKitLoader
 
                 if (GUILayout.Button("Edit"))
                 {
-                    editingIndex = i;
-                    nameField = entry.Name;
-                    descriptionField = entry.Description;
-                    typeField = entry.Type;
-                    urlField = entry.Url;
-                    licenseField = entry.License;
-                    tagsField = entry.Tags;
+                    _editingIndex = i;
+                    _nameField = entry.Name;
+                    _descriptionField = entry.Description;
+                    _typeField = entry.Type;
+                    _urlField = entry.Url;
+                    _licenseField = entry.License;
+                    _tagsField = entry.Tags;
                 }
 
                 if (GUILayout.Button("Delete"))
@@ -211,13 +211,13 @@ namespace DevKitLoader
                         ToolListManager.RemoveEntry(i);
                         SaveAndReload();
 
-                        if (editingIndex == i)
+                        if (_editingIndex == i)
                         {
                             ClearForm();
                         }
-                        else if (editingIndex > i)
+                        else if (_editingIndex > i)
                         {
-                            editingIndex--;
+                            _editingIndex--;
                         }
                     }
                 }

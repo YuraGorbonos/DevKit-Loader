@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
@@ -8,14 +8,14 @@ namespace DevKitLoader
     [Serializable]
     public class ApiCacheEntry
     {
-        public string ETag;
-        public string DownloadUrl;
-        public long Size;
-        public string Expiry; // ISO 8601
+        public string tag;
+        public string downloadUrl;
+        public long size;
+        public string expiry; // ISO 8601
 
         public bool IsExpired()
         {
-            if (DateTime.TryParse(Expiry, out var expiry))
+            if (DateTime.TryParse(this.expiry, out var expiry))
             {
                 return DateTime.UtcNow > expiry;
             }
@@ -25,7 +25,7 @@ namespace DevKitLoader
 
         public void SetExpiry(TimeSpan lifetime)
         {
-            Expiry = DateTime.UtcNow.Add(lifetime).ToString("o");
+            expiry = DateTime.UtcNow.Add(lifetime).ToString("o");
         }
     }
 
@@ -39,27 +39,27 @@ namespace DevKitLoader
     [Serializable]
     public class ApiCacheData
     {
-        public ApiCacheEntryPair[] Entries;
+        public ApiCacheEntryPair[] entries;
     }
 
     public static class ApiCache
     {
-        private static readonly string CachePath = Path.Combine(Application.dataPath, "../ProjectSettings/DevKitLoaderCache.json");
+        private static readonly string _cachePath = Path.Combine(Application.dataPath, "../ProjectSettings/DevKitLoaderCache.json");
 
         public static Dictionary<string, ApiCacheEntry> Load()
         {
-            if (File.Exists(CachePath))
+            if (File.Exists(_cachePath))
             {
                 try
                 {
-                    string json = File.ReadAllText(CachePath);
+                    string json = File.ReadAllText(_cachePath);
                     var data = JsonUtility.FromJson<ApiCacheData>(json);
 
-                    if (data?.Entries != null)
+                    if (data?.entries != null)
                     {
                         var dict = new Dictionary<string, ApiCacheEntry>();
 
-                        foreach (var pair in data.Entries)
+                        foreach (var pair in data.entries)
                         {
                             dict[pair.key] = pair.value;
                         }
@@ -94,11 +94,11 @@ namespace DevKitLoader
                         list.Add(new ApiCacheEntryPair { key = kv.Key, value = kv.Value });
                     }
 
-                    data.Entries = list.ToArray();
+                    data.entries = list.ToArray();
                 }
 
                 string json = JsonUtility.ToJson(data, true);
-                File.WriteAllText(CachePath, json);
+                File.WriteAllText(_cachePath, json);
             }
             catch (Exception e)
             {
