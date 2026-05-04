@@ -9,6 +9,34 @@ namespace DevKitLoader
 {
     public class GitLabReleaseHandler : ISourceHandler
     {
+        [Serializable]
+        private class GitLabRelease
+        {
+            public GitLabAssets assets;
+        }
+
+        [Serializable]
+        private class GitLabAssets
+        {
+            public GitLabLink[] links;
+            public GitLabSource[] sources;
+        }
+
+        [Serializable]
+        private class GitLabLink
+        {
+            public string name;
+            public string url;
+            public long size;
+        }
+
+        [Serializable]
+        private class GitLabSource
+        {
+            public string format;
+            public string url;
+        }
+
         private readonly ToolEntry _entry;
         private const string UserAgent = "DevKitLoader";
         private const string GitLabApiBase = "https://gitlab.com/api/v4/projects/";
@@ -33,8 +61,11 @@ namespace DevKitLoader
             {
                 onProgress?.Invoke("Получение последнего релиза GitLab...", 0.1f);
                 var releaseInfo = await GetLatestReleaseInfoAsync(_entry.Url, cancellationToken);
+
                 if (string.IsNullOrEmpty(releaseInfo.downloadUrl))
+                {
                     throw new Exception($"Не найден .unitypackage или .zip в последнем релизе: {_entry.Url}");
+                }
 
                 downloadUrl = releaseInfo.downloadUrl;
                 fileName = Path.GetFileName(downloadUrl);
@@ -47,12 +78,19 @@ namespace DevKitLoader
             onProgress?.Invoke("Скачивание завершено", 0.8f);
 
             string targetFolder = $"Assets/DevKitInstalled/{SanitizeFolderName(_entry.Name)}";
+
             if (fileName.EndsWith(".unitypackage", StringComparison.OrdinalIgnoreCase))
+            {
                 PackageImporter.ExtractUnityPackage(tempFile, targetFolder);
+            }
             else if (fileName.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
+            {
                 PackageImporter.ExtractZip(tempFile, targetFolder);
+            }
             else
+            {
                 throw new Exception($"Неподдерживаемый тип файла: {fileName}");
+            }
 
             onProgress?.Invoke("Установка завершена", 1f);
         }
@@ -75,10 +113,15 @@ namespace DevKitLoader
             {
                 request.SetRequestHeader("User-Agent", UserAgent);
                 request.SetRequestHeader("Accept", "application/json");
+
                 if (hasCached && !string.IsNullOrEmpty(cachedEntry.ETag))
                 {
                     string sanitized = SanitizeHeaderValue(cachedEntry.ETag);
-                    if (!string.IsNullOrEmpty(sanitized)) request.SetRequestHeader("If-None-Match", sanitized);
+
+                    if (!string.IsNullOrEmpty(sanitized))
+                    {
+                        request.SetRequestHeader("If-None-Match", sanitized);
+                    }
                 }
 
                 var asyncOp = request.SendWebRequest();
@@ -125,24 +168,33 @@ namespace DevKitLoader
         private (string downloadUrl, long size) ParseReleaseJson(string json)
         {
             var release = JsonUtility.FromJson<GitLabRelease>(json);
+
             if (release?.assets?.links != null)
             {
                 foreach (var link in release.assets.links)
                 {
                     string lowerName = link.name?.ToLower() ?? "";
+
                     if (lowerName.EndsWith(".unitypackage") || lowerName.EndsWith(".zip"))
+                    {
                         return (link.url, link.size);
+                    }
                 }
             }
+
             if (release?.assets?.sources != null)
             {
                 foreach (var source in release.assets.sources)
                 {
                     string lowerFormat = source.format?.ToLower() ?? "";
+
                     if (lowerFormat == "zip")
+                    {
                         return (source.url, 0);
+                    }
                 }
             }
+
             throw new Exception("В релизе нет подходящих ассетов (.unitypackage или .zip)");
         }
 
@@ -152,6 +204,7 @@ namespace DevKitLoader
             {
                 request.downloadHandler = new DownloadHandlerFile(destPath);
                 var op = request.SendWebRequest();
+
                 while (!op.isDone)
                 {
                     if (cancellationToken.IsCancellationRequested)
@@ -159,11 +212,15 @@ namespace DevKitLoader
                         request.Abort();
                         throw new OperationCanceledException();
                     }
+
                     onProgress?.Invoke("Скачивание...", 0.4f + op.progress * 0.4f);
                     await Task.Delay(50, cancellationToken);
                 }
+
                 if (request.result != UnityWebRequest.Result.Success)
+                {
                     throw new Exception($"Ошибка загрузки: {request.error}");
+                }
             }
         }
 
@@ -171,9 +228,19 @@ namespace DevKitLoader
         {
             string apiUrl = repoUrl.TrimEnd('/');
             int start = apiUrl.IndexOf("gitlab.com/", StringComparison.OrdinalIgnoreCase);
-            if (start == -1) throw new Exception("URL не содержит gitlab.com");
+
+            if (start == -1)
+            {
+                throw new Exception("URL не содержит gitlab.com");
+            }
+
             string path = apiUrl.Substring(start + "gitlab.com/".Length);
-            if (path.EndsWith(".git", StringComparison.OrdinalIgnoreCase)) path = path.Substring(0, path.Length - 4);
+
+            if (path.EndsWith(".git", StringComparison.OrdinalIgnoreCase))
+            {
+                path = path.Substring(0, path.Length - 4);
+            }
+
             // Encode path parts for project id: group%2Fproject
             string encodedPath = path.Replace("/", "%2F");
             return $"{GitLabApiBase}{encodedPath}/releases/latest";
@@ -181,31 +248,32 @@ namespace DevKitLoader
 
         private string SanitizeFolderName(string name)
         {
-            if (string.IsNullOrEmpty(name)) name = "Unknown";
-            foreach (char c in Path.GetInvalidFileNameChars()) name = name.Replace(c, '_');
-            foreach (char c in Path.GetInvalidPathChars()) name = name.Replace(c, '_');
+            if (string.IsNullOrEmpty(name))
+            {
+                name = "Unknown";
+            }
+
+            foreach (char c in Path.GetInvalidFileNameChars())
+            {
+                name = name.Replace(c, '_');
+            }
+
+            foreach (char c in Path.GetInvalidPathChars())
+            {
+                name = name.Replace(c, '_');
+            }
+
             return name;
         }
 
         private string SanitizeHeaderValue(string value)
         {
-            if (string.IsNullOrEmpty(value)) return null;
+            if (string.IsNullOrEmpty(value))
+            {
+                return null;
+            }
+
             return System.Text.RegularExpressions.Regex.Replace(value, @"[^\w\-\s:\.\*]", "");
         }
-
-        [Serializable]
-        private class GitLabRelease { public GitLabAssets assets; }
-
-        [Serializable]
-        private class GitLabAssets
-        {
-            public GitLabLink[] links;
-            public GitLabSource[] sources;
-        }
-
-        [Serializable]
-        private class GitLabLink { public string name; public string url; public long size; }
-        [Serializable]
-        private class GitLabSource { public string format; public string url; }
     }
 }

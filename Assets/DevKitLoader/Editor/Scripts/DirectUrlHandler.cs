@@ -2,7 +2,6 @@
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-
 using UnityEngine.Networking;
 
 namespace DevKitLoader
@@ -20,8 +19,11 @@ namespace DevKitLoader
         {
             string url = _entry.Url;
             string fileName = Path.GetFileName(url);
+
             if (string.IsNullOrEmpty(fileName) || (!fileName.EndsWith(".unitypackage") && !fileName.EndsWith(".zip")))
+            {
                 throw new Exception("URL должен указывать на файл .unitypackage или .zip");
+            }
 
             string tempFile = DownloadManager.GetTempFilePath(Path.GetExtension(fileName));
             onProgress?.Invoke($"Скачивание {fileName}...", 0.3f);
@@ -29,20 +31,26 @@ namespace DevKitLoader
             onProgress?.Invoke("Скачивание завершено", 0.8f);
 
             string targetFolder = $"Assets/DevKitInstalled/{SanitizeFolderName(_entry.Name)}";
+
             if (fileName.EndsWith(".unitypackage", StringComparison.OrdinalIgnoreCase))
+            {
                 PackageImporter.ExtractUnityPackage(tempFile, targetFolder);
+            }
             else
+            {
                 PackageImporter.ExtractZip(tempFile, targetFolder);
+            }
 
             onProgress?.Invoke("Установка завершена", 1f);
         }
 
         private async Task DownloadFileAsync(string url, string destPath, Action<string, float> onProgress, CancellationToken cancellationToken)
         {
-            using (var request = new UnityEngine.Networking.UnityWebRequest(url, UnityEngine.Networking.UnityWebRequest.kHttpVerbGET))
+            using (var request = new UnityWebRequest(url, UnityWebRequest.kHttpVerbGET))
             {
                 request.downloadHandler = new DownloadHandlerFile(destPath);
                 var asyncOp = request.SendWebRequest();
+
                 while (!asyncOp.isDone)
                 {
                     if (cancellationToken.IsCancellationRequested)
@@ -50,19 +58,35 @@ namespace DevKitLoader
                         request.Abort();
                         throw new OperationCanceledException();
                     }
+
                     onProgress?.Invoke("Скачивание...", 0.3f + asyncOp.progress * 0.5f);
                     await Task.Delay(50, cancellationToken);
                 }
+
                 if (request.result != UnityWebRequest.Result.Success)
+                {
                     throw new Exception($"Ошибка загрузки: {request.error}");
+                }
             }
         }
 
         private string SanitizeFolderName(string name)
         {
-            if (string.IsNullOrEmpty(name)) name = "Unknown";
-            foreach (char c in Path.GetInvalidFileNameChars()) name = name.Replace(c, '_');
-            foreach (char c in Path.GetInvalidPathChars()) name = name.Replace(c, '_');
+            if (string.IsNullOrEmpty(name))
+            {
+                name = "Unknown";
+            }
+
+            foreach (char c in Path.GetInvalidFileNameChars())
+            {
+                name = name.Replace(c, '_');
+            }
+
+            foreach (char c in Path.GetInvalidPathChars())
+            {
+                name = name.Replace(c, '_');
+            }
+
             return name;
         }
     }
