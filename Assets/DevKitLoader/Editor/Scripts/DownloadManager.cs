@@ -9,7 +9,7 @@ namespace DevKitLoader
 {
     public static class DownloadManager
     {
-        private static readonly string TempFolder = Path.Combine(Path.GetTempPath(), "DevKitLoader");
+        private static readonly string _tempFolder = Path.Combine(Path.GetTempPath(), "DevKitLoader");
 
         public static async Task InstallAssetsAsync(
             List<ToolEntry> entries,
@@ -22,9 +22,9 @@ namespace DevKitLoader
                 return;
             }
 
-            if (!Directory.Exists(TempFolder))
+            if (!Directory.Exists(_tempFolder))
             {
-                Directory.CreateDirectory(TempFolder);
+                Directory.CreateDirectory(_tempFolder);
             }
 
             int total = entries.Count;
@@ -65,9 +65,9 @@ namespace DevKitLoader
 
             try
             {
-                if (Directory.Exists(TempFolder))
+                if (Directory.Exists(_tempFolder))
                 {
-                    Directory.Delete(TempFolder, true);
+                    Directory.Delete(_tempFolder, true);
                 }
             }
             catch (Exception ex)
@@ -79,7 +79,7 @@ namespace DevKitLoader
         internal static string GetTempFilePath(string extension = "")
         {
             string fileName = Guid.NewGuid().ToString("N") + extension;
-            return Path.Combine(TempFolder, fileName);
+            return Path.Combine(_tempFolder, fileName);
         }
     }
 }

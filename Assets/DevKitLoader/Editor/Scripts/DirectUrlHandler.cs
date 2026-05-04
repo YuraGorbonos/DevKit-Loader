@@ -30,7 +30,7 @@ namespace DevKitLoader
             await DownloadFileAsync(url, tempFile, onProgress, cancellationToken);
             onProgress?.Invoke("Скачивание завершено", 0.8f);
 
-            string targetFolder = $"Assets/DevKitInstalled/{SanitizeFolderName(_entry.Name)}";
+            string targetFolder = DevKitLoaderCommon.GetTargetFolderForName(_entry.Name);
 
             if (fileName.EndsWith(".unitypackage", StringComparison.OrdinalIgnoreCase))
             {
@@ -70,24 +70,6 @@ namespace DevKitLoader
             }
         }
 
-        private string SanitizeFolderName(string name)
-        {
-            if (string.IsNullOrEmpty(name))
-            {
-                name = "Unknown";
-            }
-
-            foreach (char c in Path.GetInvalidFileNameChars())
-            {
-                name = name.Replace(c, '_');
-            }
-
-            foreach (char c in Path.GetInvalidPathChars())
-            {
-                name = name.Replace(c, '_');
-            }
-
-            return name;
-        }
+        // Санитайзеры вынесены в DevKitLoaderCommon
     }
 }

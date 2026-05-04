@@ -9,16 +9,16 @@ namespace DevKitLoader
 {
     public class QuickSetupWindow : EditorWindow
     {
-        private Vector2 scrollPosition;
-        private List<bool> selectedStates = new();
-        private ToolList toolList;
-        private bool isInstalling;
-        private CancellationTokenSource cancellationTokenSource;
-        private string currentProgressMessage = string.Empty;
-        private float currentProgress;
-        private List<string> errorMessages = new();
-        private int successCount;
-        private bool showReport;
+        private Vector2 _scrollPosition;
+        private List<bool> _selectedStates = new();
+        private ToolList _toolList;
+        private bool _isInstalling;
+        private CancellationTokenSource _cancellationTokenSource;
+        private string _currentProgressMessage = string.Empty;
+        private float _currentProgress;
+        private List<string> _errorMessages = new();
+        private int _successCount;
+        private bool _showReport;
 
         private void OnEnable()
         {
@@ -34,11 +34,11 @@ namespace DevKitLoader
 
         private void RefreshList()
         {
-            toolList = ToolListManager.LoadList();
+            _toolList = ToolListManager.LoadList();
 
-            if (selectedStates.Count != toolList.Entries.Count)
+            if (_selectedStates.Count != _toolList.Entries.Count)
             {
-                selectedStates = new List<bool>(new bool[toolList.Entries.Count]);
+                _selectedStates = new List<bool>(new bool[_toolList.Entries.Count]);
             }
 
             Repaint();
@@ -46,13 +46,13 @@ namespace DevKitLoader
 
         private void OnGUI()
         {
-            if (isInstalling)
+            if (_isInstalling)
             {
                 DrawProgress();
                 return;
             }
 
-            if (showReport)
+            if (_showReport)
             {
                 DrawReport();
                 return;
@@ -69,17 +69,17 @@ namespace DevKitLoader
 
             if (GUILayout.Button("Выбрать всё", EditorStyles.toolbarButton))
             {
-                for (int i = 0; i < selectedStates.Count; i++)
+                for (int i = 0; i < _selectedStates.Count; i++)
                 {
-                    selectedStates[i] = true;
+                    _selectedStates[i] = true;
                 }
             }
 
             if (GUILayout.Button("Снять всё", EditorStyles.toolbarButton))
             {
-                for (int i = 0; i < selectedStates.Count; i++)
+                for (int i = 0; i < _selectedStates.Count; i++)
                 {
-                    selectedStates[i] = false;
+                    _selectedStates[i] = false;
                 }
             }
 
@@ -95,20 +95,20 @@ namespace DevKitLoader
 
         private void DrawAssetList()
         {
-            if (toolList == null || toolList.Entries.Count == 0)
+            if (_toolList == null || _toolList.Entries.Count == 0)
             {
                 EditorGUILayout.HelpBox("No tools added. Please use 'Manage List' to add some tools.", MessageType.Info);
                 return;
             }
 
-            scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
+            _scrollPosition = EditorGUILayout.BeginScrollView(_scrollPosition);
 
-            for (int i = 0; i < toolList.Entries.Count; i++)
+            for (int i = 0; i < _toolList.Entries.Count; i++)
             {
-                var entry = toolList.Entries[i];
+                var entry = _toolList.Entries[i];
                 EditorGUILayout.BeginHorizontal("box");
 
-                selectedStates[i] = EditorGUILayout.Toggle(selectedStates[i], GUILayout.Width(20));
+                _selectedStates[i] = EditorGUILayout.Toggle(_selectedStates[i], GUILayout.Width(20));
 
                 EditorGUILayout.BeginVertical();
                 GUILayout.Label(entry.Name, EditorStyles.boldLabel);
@@ -137,7 +137,7 @@ namespace DevKitLoader
                 ManageListWindow.Open();
             }
 
-            GUI.enabled = !isInstalling && toolList != null && toolList.Entries.Count > 0 && selectedStates.Any(s => s);
+            GUI.enabled = !_isInstalling && _toolList != null && _toolList.Entries.Count > 0 && _selectedStates.Any(s => s);
 
             if (GUILayout.Button("Установить выбранные", GUILayout.Height(30)))
             {
@@ -152,11 +152,11 @@ namespace DevKitLoader
         {
             var selectedEntries = new List<ToolEntry>();
 
-            for (int i = 0; i < toolList.Entries.Count; i++)
+            for (int i = 0; i < _toolList.Entries.Count; i++)
             {
-                if (selectedStates[i])
+                if (_selectedStates[i])
                 {
-                    selectedEntries.Add(toolList.Entries[i]);
+                    selectedEntries.Add(_toolList.Entries[i]);
                 }
             }
 
@@ -165,12 +165,12 @@ namespace DevKitLoader
                 return;
             }
 
-            isInstalling = true;
-            cancellationTokenSource = new CancellationTokenSource();
-            errorMessages.Clear();
-            successCount = 0;
-            currentProgressMessage = "Starting...";
-            currentProgress = 0f;
+            _isInstalling = true;
+            _cancellationTokenSource = new CancellationTokenSource();
+            _errorMessages.Clear();
+            _successCount = 0;
+            _currentProgressMessage = "Starting...";
+            _currentProgress = 0f;
 
             try
             {
@@ -178,31 +178,31 @@ namespace DevKitLoader
                     selectedEntries,
                     (msg, prog) =>
                     {
-                        currentProgressMessage = msg;
-                        currentProgress = prog;
+                        _currentProgressMessage = msg;
+                        _currentProgress = prog;
                         Repaint();
                     },
                     err =>
                     {
-                        errorMessages.Add(err);
+                        _errorMessages.Add(err);
                         Repaint();
                     },
-                    cancellationTokenSource.Token
+                    _cancellationTokenSource.Token
                 );
 
-                successCount = selectedEntries.Count - errorMessages.Count;
-                showReport = true;
+                _successCount = selectedEntries.Count - _errorMessages.Count;
+                _showReport = true;
             }
             catch (Exception ex)
             {
                 Debug.LogError($"[DevKitLoader] Installation failed: {ex.Message}");
-                errorMessages.Add($"General error: {ex.Message}");
-                showReport = true;
+                _errorMessages.Add($"General error: {ex.Message}");
+                _showReport = true;
             }
             finally
             {
-                isInstalling = false;
-                cancellationTokenSource = null;
+                _isInstalling = false;
+                _cancellationTokenSource = null;
                 Repaint();
             }
         }
@@ -212,17 +212,17 @@ namespace DevKitLoader
             GUILayout.FlexibleSpace();
             GUILayout.Label("Installing selected tools...", EditorStyles.boldLabel);
             GUILayout.Space(10);
-            EditorGUILayout.LabelField(currentProgressMessage);
-            EditorGUILayout.Slider(currentProgress, 0f, 1f);
+            EditorGUILayout.LabelField(_currentProgressMessage);
+            EditorGUILayout.Slider(_currentProgress, 0f, 1f);
             GUILayout.Space(10);
 
             if (GUILayout.Button("Cancel"))
             {
-                cancellationTokenSource?.Cancel();
-                cancellationTokenSource?.Dispose();
-                cancellationTokenSource = null;
-                isInstalling = false;
-                showReport = true;
+                _cancellationTokenSource?.Cancel();
+                _cancellationTokenSource?.Dispose();
+                _cancellationTokenSource = null;
+                _isInstalling = false;
+                _showReport = true;
             }
 
             GUILayout.FlexibleSpace();
@@ -232,13 +232,13 @@ namespace DevKitLoader
         {
             GUILayout.Label("Installation Report", EditorStyles.boldLabel);
             GUILayout.Space(10);
-            EditorGUILayout.LabelField($"Successfully installed: {successCount}");
+            EditorGUILayout.LabelField($"Successfully installed: {_successCount}");
 
-            if (errorMessages.Count > 0)
+            if (_errorMessages.Count > 0)
             {
                 EditorGUILayout.LabelField("Errors:", EditorStyles.boldLabel);
 
-                foreach (var err in errorMessages)
+                foreach (var err in _errorMessages)
                 {
                     EditorGUILayout.HelpBox(err, MessageType.Error);
                 }
@@ -252,7 +252,7 @@ namespace DevKitLoader
 
             if (GUILayout.Button("OK"))
             {
-                showReport = false;
+                _showReport = false;
                 RefreshList();
                 Repaint();
             }

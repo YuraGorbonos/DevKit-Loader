@@ -6,8 +6,8 @@ namespace DevKitLoader
     [InitializeOnLoad]
     public static class DevKitLoaderEditor
     {
-        private const string GlobalFirstRunKey = "DevKitLoader_FirstRun_Global";
-        private const string ProjectFlagPath = "Assets/DevKitLoader/.firstrun";
+        private const string _GlobalFirstRunKey = "DevKitLoader_FirstRun_Global";
+        private const string _ProjectFlagPath = "Assets/DevKitLoader/.firstrun";
 
         static DevKitLoaderEditor()
         {
@@ -17,18 +17,18 @@ namespace DevKitLoader
         private static void Initialize()
         {
             // Глобальный первый запуск
-            if (!EditorPrefs.HasKey(GlobalFirstRunKey))
+            if (!EditorPrefs.HasKey(_GlobalFirstRunKey))
             {
-                EditorPrefs.SetBool(GlobalFirstRunKey, true);
+                EditorPrefs.SetBool(_GlobalFirstRunKey, true);
                 OpenManageList();
                 return;
             }
 
             // Первый запуск в проекте
-            if (!File.Exists(ProjectFlagPath))
+            if (!File.Exists(_ProjectFlagPath))
             {
-                Directory.CreateDirectory(Path.GetDirectoryName(ProjectFlagPath));
-                File.WriteAllText(ProjectFlagPath, "");
+                Directory.CreateDirectory(Path.GetDirectoryName(_ProjectFlagPath) ?? string.Empty);
+                File.WriteAllText(_ProjectFlagPath, "");
                 AssetDatabase.Refresh();
                 OpenQuickSetup();
             }
