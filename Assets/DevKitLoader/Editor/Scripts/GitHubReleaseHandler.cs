@@ -25,8 +25,6 @@ namespace DevKitLoader
         }
 
         private readonly ToolEntry _entry;
-        private const string UserAgent = "DevKitLoader";
-        private const string GitHubApiBase = "https://api.github.com/repos/";
 
         public GitHubReleaseHandler(ToolEntry entry)
         {
@@ -64,7 +62,7 @@ namespace DevKitLoader
             await DownloadFileAsync(downloadUrl, tempFile, onProgress, cancellationToken);
             onProgress?.Invoke("Скачивание завершено", 0.8f);
 
-            string targetFolder = $"Assets/DevKitInstalled/{SanitizeFolderName(_entry.Name)}";
+            string targetFolder = DevKitLoaderCommon.GetTargetFolderForName(_entry.Name);
 
             if (fileName.EndsWith(".unitypackage", StringComparison.OrdinalIgnoreCase))
             {
@@ -99,12 +97,12 @@ namespace DevKitLoader
             using (var request = UnityWebRequest.Get(apiUrl))
             {
                 // Устанавливаем заголовки с защитой от недопустимых символов
-                request.SetRequestHeader("User-Agent", UserAgent);
+                request.SetRequestHeader("User-Agent", DevKitLoaderCommon.UserAgent);
                 request.SetRequestHeader("Accept", "application/vnd.github.v3+json");
 
                 if (hasCached && !string.IsNullOrEmpty(cachedEntry.tag))
                 {
-                    string sanitizedEtag = SanitizeHeaderValue(cachedEntry.tag);
+                    string sanitizedEtag = DevKitLoaderCommon.SanitizeHeaderValue(cachedEntry.tag);
 
                     if (!string.IsNullOrEmpty(sanitizedEtag))
                     {
@@ -137,10 +135,10 @@ namespace DevKitLoader
                     await Task.Delay(50, cancellationToken);
                 }
 
-                if (request.result == UnityWebRequest.Result.Success)
-                {
+                    if (request.result == UnityWebRequest.Result.Success)
+                    {
                     string etag = request.GetResponseHeader("ETag")?.Trim('"');
-                    etag = SanitizeHeaderValue(etag); // очищаем
+                    etag = DevKitLoaderCommon.SanitizeHeaderValue(etag); // очищаем
                     var (downloadUrl, size) = ParseReleaseJson(request.downloadHandler.text);
 
                     var newEntry = new ApiCacheEntry
@@ -165,16 +163,7 @@ namespace DevKitLoader
             }
         }
 
-        private string SanitizeHeaderValue(string value)
-        {
-            if (string.IsNullOrEmpty(value))
-            {
-                return null;
-            }
-
-            // Оставляем только разрешённые символы: буквы, цифры, пробелы, дефис, подчёркивание, двоеточие, точка, звёздочка
-            return System.Text.RegularExpressions.Regex.Replace(value, @"[^\w\-\s:\.\*]", "");
-        }
+        // Санитайзеры вынесены в DevKitLoaderCommon
 
         private (string downloadUrl, long size) ParseReleaseJson(string json)
         {
@@ -200,28 +189,7 @@ namespace DevKitLoader
 
         private async Task DownloadFileAsync(string url, string destPath, Action<string, float> onProgress, CancellationToken cancellationToken)
         {
-            using (var request = new UnityWebRequest(url, UnityWebRequest.kHttpVerbGET))
-            {
-                request.downloadHandler = new DownloadHandlerFile(destPath);
-                var asyncOp = request.SendWebRequest();
-
-                while (!asyncOp.isDone)
-                {
-                    if (cancellationToken.IsCancellationRequested)
-                    {
-                        request.Abort();
-                        throw new OperationCanceledException();
-                    }
-
-                    onProgress?.Invoke("Скачивание...", 0.4f + asyncOp.progress * 0.4f);
-                    await Task.Delay(50, cancellationToken);
-                }
-
-                if (request.result != UnityWebRequest.Result.Success)
-                {
-                    throw new Exception($"Ошибка загрузки: {request.error}");
-                }
-            }
+            await DevKitLoaderCommon.DownloadFileAsync(url, destPath, onProgress, cancellationToken);
         }
 
         private string ParseRepoToApiUrl(string repoUrl)
@@ -272,27 +240,9 @@ namespace DevKitLoader
                 path = path.Substring(0, path.Length - 4);
             }
 
-            return $"{GitHubApiBase}{path}/releases/latest";
+            return $"{DevKitLoaderCommon.GitHubApiBase}{path}/releases/latest";
         }
 
-        private string SanitizeFolderName(string name)
-        {
-            if (string.IsNullOrEmpty(name))
-            {
-                name = "Unknown";
-            }
-
-            foreach (char c in Path.GetInvalidFileNameChars())
-            {
-                name = name.Replace(c, '_');
-            }
-
-            foreach (char c in Path.GetInvalidPathChars())
-            {
-                name = name.Replace(c, '_');
-            }
-
-            return name;
-        }
+        // Санитайзеры вынесены в DevKitLoaderCommon
     }
 }

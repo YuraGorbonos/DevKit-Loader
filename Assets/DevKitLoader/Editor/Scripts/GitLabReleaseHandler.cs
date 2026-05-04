@@ -38,8 +38,6 @@ namespace DevKitLoader
         }
 
         private readonly ToolEntry _entry;
-        private const string UserAgent = "DevKitLoader";
-        private const string GitLabApiBase = "https://gitlab.com/api/v4/projects/";
 
         public GitLabReleaseHandler(ToolEntry entry)
         {
@@ -77,7 +75,7 @@ namespace DevKitLoader
             await DownloadFileAsync(downloadUrl, tempFile, onProgress, cancellationToken);
             onProgress?.Invoke("Скачивание завершено", 0.8f);
 
-            string targetFolder = $"Assets/DevKitInstalled/{SanitizeFolderName(_entry.Name)}";
+            string targetFolder = DevKitLoaderCommon.GetTargetFolderForName(_entry.Name);
 
             if (fileName.EndsWith(".unitypackage", StringComparison.OrdinalIgnoreCase))
             {
@@ -111,12 +109,12 @@ namespace DevKitLoader
 
             using (var request = UnityWebRequest.Get(apiUrl))
             {
-                request.SetRequestHeader("User-Agent", UserAgent);
+                request.SetRequestHeader("User-Agent", DevKitLoaderCommon.UserAgent);
                 request.SetRequestHeader("Accept", "application/json");
 
                 if (hasCached && !string.IsNullOrEmpty(cachedEntry.tag))
                 {
-                    string sanitized = SanitizeHeaderValue(cachedEntry.tag);
+                    string sanitized = DevKitLoaderCommon.SanitizeHeaderValue(cachedEntry.tag);
 
                     if (!string.IsNullOrEmpty(sanitized))
                     {
@@ -140,7 +138,7 @@ namespace DevKitLoader
                 if (request.result == UnityWebRequest.Result.Success)
                 {
                     string etag = request.GetResponseHeader("ETag")?.Trim('"');
-                    etag = SanitizeHeaderValue(etag); // очищаем
+                    etag = DevKitLoaderCommon.SanitizeHeaderValue(etag); // очищаем
                     var (downloadUrl, size) = ParseReleaseJson(request.downloadHandler.text);
 
                     var newEntry = new ApiCacheEntry
@@ -200,28 +198,7 @@ namespace DevKitLoader
 
         private async Task DownloadFileAsync(string url, string destPath, Action<string, float> onProgress, CancellationToken cancellationToken)
         {
-            using (var request = new UnityWebRequest(url, UnityWebRequest.kHttpVerbGET))
-            {
-                request.downloadHandler = new DownloadHandlerFile(destPath);
-                var op = request.SendWebRequest();
-
-                while (!op.isDone)
-                {
-                    if (cancellationToken.IsCancellationRequested)
-                    {
-                        request.Abort();
-                        throw new OperationCanceledException();
-                    }
-
-                    onProgress?.Invoke("Скачивание...", 0.4f + op.progress * 0.4f);
-                    await Task.Delay(50, cancellationToken);
-                }
-
-                if (request.result != UnityWebRequest.Result.Success)
-                {
-                    throw new Exception($"Ошибка загрузки: {request.error}");
-                }
-            }
+            await DevKitLoaderCommon.DownloadFileAsync(url, destPath, onProgress, cancellationToken);
         }
 
         private string ParseRepoToApiUrl(string repoUrl)
@@ -243,37 +220,9 @@ namespace DevKitLoader
 
             // Encode path parts for project id: group%2Fproject
             string encodedPath = path.Replace("/", "%2F");
-            return $"{GitLabApiBase}{encodedPath}/releases/latest";
+            return $"{DevKitLoaderCommon.GitLabApiBase}{encodedPath}/releases/latest";
         }
 
-        private string SanitizeFolderName(string name)
-        {
-            if (string.IsNullOrEmpty(name))
-            {
-                name = "Unknown";
-            }
-
-            foreach (char c in Path.GetInvalidFileNameChars())
-            {
-                name = name.Replace(c, '_');
-            }
-
-            foreach (char c in Path.GetInvalidPathChars())
-            {
-                name = name.Replace(c, '_');
-            }
-
-            return name;
-        }
-
-        private string SanitizeHeaderValue(string value)
-        {
-            if (string.IsNullOrEmpty(value))
-            {
-                return null;
-            }
-
-            return System.Text.RegularExpressions.Regex.Replace(value, @"[^\w\-\s:\.\*]", "");
-        }
+        // Санитайзеры вынесены в DevKitLoaderCommon
     }
 }
