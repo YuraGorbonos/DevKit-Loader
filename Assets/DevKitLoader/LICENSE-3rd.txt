@@ -1,0 +1,9 @@
+# SharpCompress MIT License - (Placeholder)
+#
+# This file should contain the exact license text for SharpCompress (MIT).
+# Please replace this placeholder with the official license text copied from
+# the SharpCompress repository (MIT License).
+
+===============================
+Please replace this file with the actual license text from SharpCompress (MIT License).
+===============================
