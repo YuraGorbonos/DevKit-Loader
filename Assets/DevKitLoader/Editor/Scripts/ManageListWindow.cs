@@ -1,4 +1,7 @@
-﻿using UnityEditor;
+﻿using System;
+using System.Collections.Generic;
+using System.Threading;
+using UnityEditor;
 using UnityEngine;
 
 namespace DevKitLoader
@@ -130,6 +133,19 @@ namespace DevKitLoader
             GUI.FocusControl(null);
         }
 
+        private async void TestInstall(ToolEntry entry)
+        {
+            var progress = new Progress<(string, float)>(update => { Debug.Log($"[Progress] {update.Item1}: {update.Item2 * 100:F0}%"); });
+            var cts = new CancellationTokenSource();
+
+            DownloadManager.InstallAssetsAsync(
+                new List<ToolEntry> { entry },
+                (msg, prog) => Debug.Log($"{msg} ({prog * 100:F0}%)"),
+                err => Debug.LogError(err),
+                cts.Token
+            );
+        }
+
         private void DrawList()
         {
             GUILayout.Label("Installed Tools List", EditorStyles.boldLabel);
@@ -171,6 +187,11 @@ namespace DevKitLoader
                 EditorGUILayout.EndVertical();
 
                 EditorGUILayout.BeginVertical(GUILayout.Width(80));
+
+                if (GUILayout.Button("Test Install"))
+                {
+                    TestInstall(entry);
+                }
 
                 if (GUILayout.Button("Edit"))
                 {
