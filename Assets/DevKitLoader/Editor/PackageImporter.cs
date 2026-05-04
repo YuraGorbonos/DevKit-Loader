@@ -82,6 +82,15 @@ namespace DevKitLoader
             Debug.Log($"[DevKitLoader] Распакован {Path.GetFileName(zipPath)} в {targetFolder}");
         }
 
+        /// <summary>
+        /// Альтернативный метод для .unitypackage через встроенный импортер (интерактивный).
+        /// Используется, если ручная распаковка не требуется.
+        /// </summary>
+        public static void ImportUnityPackageInteractive(string filePath)
+        {
+            AssetDatabase.ImportPackage(filePath, false);
+        }
+
         private static void EnsureTargetFolder(string targetFolder)
         {
             string fullPath = Path.Combine(Application.dataPath, "..", targetFolder);
@@ -90,15 +99,6 @@ namespace DevKitLoader
             {
                 Directory.CreateDirectory(fullPath);
             }
-        }
-
-        /// <summary>
-        /// Альтернативный метод для .unitypackage через встроенный импортер (интерактивный).
-        /// Используется, если ручная распаковка не требуется.
-        /// </summary>
-        public static void ImportUnityPackageInteractive(string filePath)
-        {
-            AssetDatabase.ImportPackage(filePath, false);
         }
     }
 }

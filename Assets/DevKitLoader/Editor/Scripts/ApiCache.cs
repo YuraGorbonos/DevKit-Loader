@@ -1,0 +1,109 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using UnityEngine;
+
+namespace DevKitLoader
+{
+    [Serializable]
+    public class ApiCacheEntry
+    {
+        public string ETag;
+        public string DownloadUrl;
+        public long Size;
+        public string Expiry; // ISO 8601
+
+        public bool IsExpired()
+        {
+            if (DateTime.TryParse(Expiry, out var expiry))
+            {
+                return DateTime.UtcNow > expiry;
+            }
+
+            return true;
+        }
+
+        public void SetExpiry(TimeSpan lifetime)
+        {
+            Expiry = DateTime.UtcNow.Add(lifetime).ToString("o");
+        }
+    }
+
+    [Serializable]
+    public class ApiCacheEntryPair
+    {
+        public string key;
+        public ApiCacheEntry value;
+    }
+
+    [Serializable]
+    public class ApiCacheData
+    {
+        public ApiCacheEntryPair[] Entries;
+    }
+
+    public static class ApiCache
+    {
+        private static readonly string CachePath = Path.Combine(Application.dataPath, "../ProjectSettings/DevKitLoaderCache.json");
+
+        public static Dictionary<string, ApiCacheEntry> Load()
+        {
+            if (File.Exists(CachePath))
+            {
+                try
+                {
+                    string json = File.ReadAllText(CachePath);
+                    var data = JsonUtility.FromJson<ApiCacheData>(json);
+
+                    if (data?.Entries != null)
+                    {
+                        var dict = new Dictionary<string, ApiCacheEntry>();
+
+                        foreach (var pair in data.Entries)
+                        {
+                            dict[pair.key] = pair.value;
+                        }
+
+                        return dict;
+                    }
+
+                    return new Dictionary<string, ApiCacheEntry>();
+                }
+                catch (Exception e)
+                {
+                    Debug.LogWarning($"[DevKitLoader] Failed to load API cache: {e.Message}");
+                    return new Dictionary<string, ApiCacheEntry>();
+                }
+            }
+
+            return new Dictionary<string, ApiCacheEntry>();
+        }
+
+        public static void Save(Dictionary<string, ApiCacheEntry> entries)
+        {
+            try
+            {
+                var data = new ApiCacheData();
+
+                if (entries != null)
+                {
+                    var list = new List<ApiCacheEntryPair>();
+
+                    foreach (var kv in entries)
+                    {
+                        list.Add(new ApiCacheEntryPair { key = kv.Key, value = kv.Value });
+                    }
+
+                    data.Entries = list.ToArray();
+                }
+
+                string json = JsonUtility.ToJson(data, true);
+                File.WriteAllText(CachePath, json);
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"[DevKitLoader] Failed to save API cache: {e.Message}");
+            }
+        }
+    }
+}
