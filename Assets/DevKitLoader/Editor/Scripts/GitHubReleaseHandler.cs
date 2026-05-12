@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -7,15 +8,23 @@ using UnityEngine.Networking;
 
 namespace DevKitLoader
 {
+    /// <summary>
+    /// Обработчик для получения информации о релизах с GitHub
+    /// </summary>
     public class GitHubReleaseHandler : ISourceHandler
     {
-        // Вложенные классы для JSON
+        /// <summary>
+        /// Вложенные классы для JSON
+        /// </summary>
         [Serializable]
         private class GitHubRelease
         {
             public GitHubAsset[] assets;
         }
 
+        /// <summary>
+        /// Класс ассета GitHub
+        /// </summary>
         [Serializable]
         private class GitHubAsset
         {
@@ -26,11 +35,21 @@ namespace DevKitLoader
 
         private readonly ToolEntry _entry;
 
+        /// <summary>
+        /// Конструктор обработчика
+        /// </summary>
+        /// <param name="entry">Запись инструмента</param>
         public GitHubReleaseHandler(ToolEntry entry)
         {
             _entry = entry;
         }
 
+        /// <summary>
+        /// Устанавливает инструмент
+        /// </summary>
+        /// <param name="onProgress">Callback для отслеживания прогресса</param>
+        /// <param name="cancellationToken">Токен отмены операции</param>
+        /// <returns>Задача для ожидания завершения установки</returns>
         public async Task InstallAsync(Action<string, float> onProgress, CancellationToken cancellationToken)
         {
             string downloadUrl = null;
@@ -102,24 +121,7 @@ namespace DevKitLoader
 
                 if (hasCached && !string.IsNullOrEmpty(cachedEntry.tag))
                 {
-                    string sanitizedEtag = DevKitLoaderCommon.SanitizeHeaderValue(cachedEntry.tag);
-
-                    if (!string.IsNullOrEmpty(sanitizedEtag))
-                    {
-                        try
-                        {
-                            request.SetRequestHeader("If-None-Match", sanitizedEtag);
-                        }
-                        catch (Exception ex)
-                        {
-                            Debug.LogWarning($"[DevKitLoader] Invalid ETag header, clearing cache: {ex.Message}");
-
-                            // Удаляем проблемную запись из кэша
-                            cache.Remove(cacheKey);
-                            ApiCache.Save(cache);
-                            hasCached = false;
-                        }
-                    }
+                    SetIfNoneMatchHeader(request, cachedEntry.tag, cache, cacheKey);
                 }
 
                 var asyncOp = request.SendWebRequest();
@@ -135,8 +137,8 @@ namespace DevKitLoader
                     await Task.Delay(50, cancellationToken);
                 }
 
-                    if (request.result == UnityWebRequest.Result.Success)
-                    {
+                if (request.result == UnityWebRequest.Result.Success)
+                {
                     string etag = request.GetResponseHeader("ETag")?.Trim('"');
                     etag = DevKitLoaderCommon.SanitizeHeaderValue(etag); // очищаем
                     var (downloadUrl, size) = ParseReleaseJson(request.downloadHandler.text);
@@ -160,6 +162,27 @@ namespace DevKitLoader
                 }
 
                 throw new Exception($"GitHub API ошибка: {request.error} (код {request.responseCode})");
+            }
+        }
+
+        private void SetIfNoneMatchHeader(UnityWebRequest request, string etag, Dictionary<string, ApiCacheEntry> cache, string cacheKey)
+        {
+            string sanitizedEtag = DevKitLoaderCommon.SanitizeHeaderValue(etag);
+
+            if (!string.IsNullOrEmpty(sanitizedEtag))
+            {
+                try
+                {
+                    request.SetRequestHeader("If-None-Match", sanitizedEtag);
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogWarning($"[DevKitLoader] Invalid ETag header, clearing cache: {ex.Message}");
+
+                    // Удаляем проблемную запись из кэша
+                    cache.Remove(cacheKey);
+                    ApiCache.Save(cache);
+                }
             }
         }
 
@@ -192,6 +215,11 @@ namespace DevKitLoader
             await DevKitLoaderCommon.DownloadFileAsync(url, destPath, onProgress, cancellationToken);
         }
 
+        /// <summary>
+        /// Парсит URL репозитория и преобразует его в API URL
+        /// </summary>
+        /// <param name="repoUrl">URL репозитория</param>
+        /// <returns>API URL для последнего релиза</returns>
         private string ParseRepoToApiUrl(string repoUrl)
         {
             repoUrl = repoUrl.TrimEnd('/');
@@ -206,32 +234,27 @@ namespace DevKitLoader
             string path = repoUrl.Substring(start + githubBase.Length);
 
             // Обрезаем всё после "/releases", "/tree/", "/blob/", "/raw/"
-            int releaseIndex = path.IndexOf("/releases", StringComparison.OrdinalIgnoreCase);
-
-            if (releaseIndex > 0)
+            int[] indices =
             {
-                path = path.Substring(0, releaseIndex);
+                path.IndexOf("/releases", StringComparison.OrdinalIgnoreCase),
+                path.IndexOf("/tree/", StringComparison.OrdinalIgnoreCase),
+                path.IndexOf("/blob/", StringComparison.OrdinalIgnoreCase),
+                path.IndexOf("/raw/", StringComparison.OrdinalIgnoreCase)
+            };
+
+            int minIndex = -1;
+
+            foreach (int index in indices)
+            {
+                if (index > 0 && (minIndex == -1 || index < minIndex))
+                {
+                    minIndex = index;
+                }
             }
 
-            int treeIndex = path.IndexOf("/tree/", StringComparison.OrdinalIgnoreCase);
-
-            if (treeIndex > 0)
+            if (minIndex > 0)
             {
-                path = path.Substring(0, treeIndex);
-            }
-
-            int blobIndex = path.IndexOf("/blob/", StringComparison.OrdinalIgnoreCase);
-
-            if (blobIndex > 0)
-            {
-                path = path.Substring(0, blobIndex);
-            }
-
-            int rawIndex = path.IndexOf("/raw/", StringComparison.OrdinalIgnoreCase);
-
-            if (rawIndex > 0)
-            {
-                path = path.Substring(0, rawIndex);
+                path = path.Substring(0, minIndex);
             }
 
             // Убираем .git в конце
