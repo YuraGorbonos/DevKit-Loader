@@ -40,6 +40,16 @@
   - **Description** (optional), **License** (optional), **Tags** (optional).
 - Click **Add**. The tool appears in the list.
 
+## Source Types Details
+
+The DevKit Loader supports multiple source types with specific URL formats:
+
+- **GitHub Release**: Use repository URL like `https://github.com/user/repo`. The plugin will automatically fetch the latest release and download the first `.unitypackage` or `.zip` asset found.
+- **GitLab Release**: Use project URL like `https://gitlab.com/group/project`. Similar to GitHub, it fetches the latest release.
+- **Direct URL**: Provide a direct link to a `.unitypackage` or `.zip` file. This is useful for custom builds or private repositories.
+- **Git UPM**: Use Git URLs with optional path parameters like `https://github.com/user/repo.git?path=/Assets/...`. This allows installation of UPM packages from Git repositories.
+- **Asset Store**: Provide a URL to the Asset Store page. This only opens the browser to the asset page; you need to manually purchase/download the asset.
+
 ### 2. Install tools
 
 - Open **Tools → DevKit Loader → Quick Setup**.

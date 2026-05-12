@@ -22,10 +22,7 @@ namespace DevKitLoader
                 return;
             }
 
-            if (!Directory.Exists(_tempFolder))
-            {
-                Directory.CreateDirectory(_tempFolder);
-            }
+            await InitializeTempFolder();
 
             int total = entries.Count;
             int current = 0;
@@ -40,29 +37,53 @@ namespace DevKitLoader
                     break;
                 }
 
-                string toolName = string.IsNullOrEmpty(entry.Name) ? entry.Url : entry.Name;
-
-                try
-                {
-                    onProgress?.Invoke($"Начинаем установку: {toolName} ({current}/{total})", 0f);
-
-                    var handler = SourceHandlerFactory.CreateHandler(entry);
-
-                    await handler.InstallAsync(
-                        (msg, prog) => onProgress?.Invoke($"{toolName}: {msg}", (current - 1 + prog) / total),
-                        cancellationToken);
-
-                    onProgress?.Invoke($"Успешно: {toolName} ({current}/{total})", (float)current / total);
-                    Debug.Log($"[DevKitLoader] Установлен: {toolName}");
-                }
-                catch (Exception ex)
-                {
-                    string errorMsg = $"Ошибка при установке {toolName}: {ex.Message}";
-                    onError?.Invoke(errorMsg);
-                    Debug.LogError($"[DevKitLoader] {errorMsg}\n{ex.StackTrace}");
-                }
+                await InstallSingleEntry(entry, current, total, onProgress, onError, cancellationToken);
             }
 
+            await CleanupTempFolder();
+        }
+
+        private static async Task InitializeTempFolder()
+        {
+            if (!Directory.Exists(_tempFolder))
+            {
+                Directory.CreateDirectory(_tempFolder);
+            }
+        }
+
+        private static async Task InstallSingleEntry(
+            ToolEntry entry,
+            int current,
+            int total,
+            Action<string, float> onProgress,
+            Action<string> onError,
+            CancellationToken cancellationToken)
+        {
+            string toolName = string.IsNullOrEmpty(entry.Name) ? entry.Url : entry.Name;
+
+            try
+            {
+                onProgress?.Invoke($"Начинаем установку: {toolName} ({current}/{total})", 0f);
+
+                var handler = SourceHandlerFactory.CreateHandler(entry);
+
+                await handler.InstallAsync(
+                    (msg, prog) => onProgress?.Invoke($"{toolName}: {msg}", (current - 1 + prog) / total),
+                    cancellationToken);
+
+                onProgress?.Invoke($"Успешно: {toolName} ({current}/{total})", (float)current / total);
+                Debug.Log($"[DevKitLoader] Установлен: {toolName}");
+            }
+            catch (Exception ex)
+            {
+                string errorMsg = $"Ошибка при установке {toolName}: {ex.Message}";
+                onError?.Invoke(errorMsg);
+                Debug.LogError($"[DevKitLoader] {errorMsg}\n{ex.StackTrace}");
+            }
+        }
+
+        private static async Task CleanupTempFolder()
+        {
             try
             {
                 if (Directory.Exists(_tempFolder))
